@@ -65,18 +65,20 @@ export default async function BillDetailPage({
         </div>
         <div>
           <div className="text-xs text-gray-500">提案日期</div>
-          <div className="mt-1 text-sm">{bill.proposalDate ?? "未提供"}</div>
+          <div className="mt-1 text-sm">{detail?.提案日期 ?? "未提供"}</div>
         </div>
         <div>
           <div className="text-xs text-gray-500">目前階段</div>
           <div className="mt-1 text-sm">{bill.stageLabel}</div>
         </div>
-        <div>
-          <div className="text-xs text-gray-500">已等待</div>
-          <div className="mt-1 text-sm font-bold text-red-700">
-            {bill.daysPending !== null ? `${bill.daysPending} 天` : "未知"}
+        {bill.daysPending !== null && (
+          <div>
+            <div className="text-xs text-gray-500">已等待</div>
+            <div className="mt-1 text-sm font-bold text-red-700">
+              {bill.daysPending} 天
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {Object.keys(cosignerCounts).length > 0 && (
@@ -87,6 +89,15 @@ export default async function BillDetailPage({
               <PartyBadge key={party} party={party} label={`${party} ×${count}`} />
             ))}
           </div>
+        </div>
+      )}
+
+      {bill.mergedInto && (
+        <div className="rounded border border-yellow-300 bg-yellow-50 p-4 text-sm">
+          此案已與其他議案併入委員會審查報告，該報告目前進度為「{bill.mergedInto.stageLabel}」。
+          <Link href={`/bills/${bill.mergedInto.id}`} className="ml-1 underline">
+            查看審查報告 →
+          </Link>
         </div>
       )}
 
