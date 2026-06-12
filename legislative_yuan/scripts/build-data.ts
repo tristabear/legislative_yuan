@@ -81,13 +81,26 @@ export function findUnmatchedProposers(
   return Array.from(unmatched).sort();
 }
 
+async function fetchAllTermBills(term: number): Promise<RawBill[]> {
+  const seen = new Map<string, RawBill>();
+
+  for (let session = 1; session <= 8; session++) {
+    const bills = await fetchAllBills(term, 100, { 會期: String(session) });
+    for (const bill of bills) {
+      seen.set(bill.議案編號, bill);
+    }
+  }
+
+  return Array.from(seen.values());
+}
+
 async function main() {
   console.log(`Fetching term ${TERM} legislators...`);
   const legislators = await fetchAllLegislators(TERM);
   console.log(`Fetched ${legislators.length} legislators`);
 
   console.log(`Fetching term ${TERM} bills (this takes a few minutes)...`);
-  const rawBills = await fetchAllBills(TERM);
+  const rawBills = await fetchAllTermBills(TERM);
   console.log(`Fetched ${rawBills.length} bills`);
 
   const bills = rawBills.map((bill) => processBill(bill, legislators));

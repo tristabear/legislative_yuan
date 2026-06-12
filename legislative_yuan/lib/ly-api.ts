@@ -63,7 +63,8 @@ interface BillDetailResponse {
 
 export async function fetchAllBills(
   term: number,
-  pageSize = 100
+  pageSize = 100,
+  extraParams: Record<string, string> = {}
 ): Promise<RawBill[]> {
   const all: RawBill[] = [];
   let page = 1;
@@ -73,6 +74,7 @@ export async function fetchAllBills(
       屆: String(term),
       limit: String(pageSize),
       page: String(page),
+      ...extraParams,
     });
     const res = await fetch(`${BASE_URL}/bills?${params.toString()}`);
     if (!res.ok) {

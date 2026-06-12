@@ -46,6 +46,25 @@ describe("fetchAllBills", () => {
     );
     await expect(fetchAllBills(11)).rejects.toThrow(/500/);
   });
+
+  it("includes extraParams in the query string", async () => {
+    const page1 = {
+      total: 1,
+      total_page: 1,
+      page: 1,
+      limit: 100,
+      bills: [{ 議案編號: "1" }],
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => page1 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchAllBills(11, 100, { 會期: "3" });
+
+    const url = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(url.searchParams.get("會期")).toBe("3");
+  });
 });
 
 describe("fetchAllLegislators", () => {
