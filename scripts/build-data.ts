@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import {
   fetchAllBills,
@@ -203,6 +203,14 @@ async function main() {
   mkdirSync(publicDataDir, { recursive: true });
   mkdirSync(dataDir, { recursive: true });
 
+  const mergeChecksPath = path.join(dataDir, "merge-checks.json");
+  const existingMergeCache: MergeCheckCache = existsSync(mergeChecksPath)
+    ? JSON.parse(readFileSync(mergeChecksPath, "utf-8"))
+    : {};
+  const mergeCandidates = selectMergeCandidates(bills);
+  console.log(`Checking ${mergeCandidates.length} possibly-merged bills...`);
+  const updatedMergeCache = await applyMergeChecks(bills, existingMergeCache);
+
   writeFileSync(path.join(publicDataDir, "bills.json"), JSON.stringify(bills));
   writeFileSync(
     path.join(publicDataDir, "meta.json"),
@@ -212,6 +220,7 @@ async function main() {
     path.join(dataDir, "unmatched-proposers.json"),
     JSON.stringify(unmatched, null, 2)
   );
+  writeFileSync(mergeChecksPath, JSON.stringify(updatedMergeCache, null, 2));
 
   console.log(`Wrote ${bills.length} bills to public/data/bills.json`);
   console.log(`Unmatched proposers: ${unmatched.length}`);

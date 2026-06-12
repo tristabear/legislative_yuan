@@ -26,7 +26,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/bills.json public/data/meta.json data/unmatched-proposers.json
+          git add public/data/bills.json public/data/meta.json data/unmatched-proposers.json data/merge-checks.json
           if git diff --cached --quiet; then
             echo "No data changes"
           else
