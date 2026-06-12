@@ -17,7 +17,7 @@ function BillsPageInner() {
   const [selectedStages, setSelectedStages] = useState<Set<string>>(new Set());
   const [selectedBillTypes, setSelectedBillTypes] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
-  const [sortByDays, setSortByDays] = useState(true);
+  const [sortMode, setSortMode] = useState<"recent" | "waiting">("recent");
 
   useEffect(() => {
     const initialCategory = searchParams.get("category");
@@ -71,11 +71,14 @@ function BillsPageInner() {
       }
       return true;
     });
-    if (sortByDays) {
-      result = [...result].sort((a, b) => (b.daysPending ?? -1) - (a.daysPending ?? -1));
-    }
+    result = [...result].sort((a, b) => {
+      if (sortMode === "waiting") {
+        return (b.daysPending ?? -1) - (a.daysPending ?? -1);
+      }
+      return (b.lastUpdateDate ?? "").localeCompare(a.lastUpdateDate ?? "");
+    });
     return result;
-  }, [bills, selectedCategories, selectedParties, selectedStages, selectedBillTypes, search, sortByDays]);
+  }, [bills, selectedCategories, selectedParties, selectedStages, selectedBillTypes, search, sortMode]);
 
   if (error) {
     return (
@@ -166,12 +169,15 @@ function BillsPageInner() {
             className="rounded border px-3 py-1.5 text-sm"
           />
           <label className="flex items-center gap-1 text-sm">
-            <input
-              type="checkbox"
-              checked={sortByDays}
-              onChange={(e) => setSortByDays(e.target.checked)}
-            />
-            依等待天數排序
+            排序：
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as "recent" | "waiting")}
+              className="rounded border px-1.5 py-1 text-sm"
+            >
+              <option value="recent">最新動態優先</option>
+              <option value="waiting">等待最久優先</option>
+            </select>
           </label>
           <span className="text-sm text-gray-500">共 {filtered.length} 件</span>
         </div>
