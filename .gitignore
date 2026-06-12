@@ -3,3 +3,4 @@ node_modules
 .superpowers
 *.tsbuildinfo
 next-env.d.ts
+.DS_Store
