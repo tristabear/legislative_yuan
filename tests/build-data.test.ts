@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildMeta,
   findUnmatchedProposers,
   processBill,
   selectMergeCandidates,
   shouldFetchMergeCheck,
+  checkMergeStatus,
+  applyMergeChecks,
 } from "../scripts/build-data";
 import type { MergeCheckEntry, MergeCheckCache } from "../scripts/build-data";
 import type { RawBill, RawLegislator } from "../lib/ly-api";
@@ -244,5 +246,133 @@ describe("shouldFetchMergeCheck", () => {
   it("returns true when last checked more than 30 days ago with no merge found", () => {
     const entry: MergeCheckEntry = { checkedAt: "2026-04-01", mergedInto: null };
     expect(shouldFetchMergeCheck(entry, today)).toBe(true);
+  });
+});
+
+describe("checkMergeStatus", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns the related bill with the highest stageOrder above the candidate's", async () => {
+    const bill = makeBill({ id: "1", stageOrder: 4 });
+    const report = makeBill({
+      id: "2",
+      name: "審查報告",
+      stageOrder: 5,
+      stageLabel: "三讀通過",
+    });
+    const billsById = new Map([
+      ["1", bill],
+      ["2", report],
+    ]);
+
+    const response = {
+      error: false,
+      data: {
+        議案編號: "1",
+        關連議案: [{ 議案編號: "2", 議案名稱: "審查報告" }],
+        url: "u",
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => response })
+    );
+
+    const result = await checkMergeStatus(bill, billsById);
+
+    expect(result).toEqual({
+      id: "2",
+      name: "審查報告",
+      stageLabel: "三讀通過",
+      stageOrder: 5,
+    });
+  });
+
+  it("returns null when no related bill has progressed further", async () => {
+    const bill = makeBill({ id: "1", stageOrder: 4 });
+    const other = makeBill({ id: "3", stageOrder: 2 });
+    const billsById = new Map([
+      ["1", bill],
+      ["3", other],
+    ]);
+
+    const response = {
+      error: false,
+      data: {
+        議案編號: "1",
+        關連議案: [{ 議案編號: "3", 議案名稱: "其他案" }],
+        url: "u",
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => response })
+    );
+
+    const result = await checkMergeStatus(bill, billsById);
+
+    expect(result).toBeNull();
+  });
+
+  it("returns null when the detail fetch fails", async () => {
+    const bill = makeBill({ id: "1", stageOrder: 4 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+    const result = await checkMergeStatus(bill, new Map());
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("applyMergeChecks", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("skips bills with a cached confirmed merge without fetching", async () => {
+    const bill = makeBill({
+      id: "1",
+      billType: "法律案",
+      stageOrder: 2,
+      lastUpdateDate: "2026-01-01",
+    });
+    const cache: MergeCheckCache = {
+      "1": {
+        checkedAt: "2020-01-01",
+        mergedInto: { id: "9", name: "報告", stageLabel: "三讀通過", stageOrder: 5 },
+      },
+    };
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await applyMergeChecks([bill], cache, new Date("2026-06-12T00:00:00Z"));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(bill.mergedInto).toEqual(cache["1"].mergedInto);
+    expect(result["1"]).toEqual(cache["1"]);
+  });
+
+  it("fetches and caches a new candidate with no prior entry", async () => {
+    const bill = makeBill({
+      id: "1",
+      billType: "法律案",
+      stageOrder: 2,
+      lastUpdateDate: "2026-01-01",
+    });
+    const response = {
+      error: false,
+      data: { 議案編號: "1", 關連議案: [], url: "u" },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => response })
+    );
+
+    const result = await applyMergeChecks([bill], {}, new Date("2026-06-12T00:00:00Z"));
+
+    expect(bill.mergedInto).toBeNull();
+    expect(result["1"]).toEqual({ checkedAt: "2026-06-12", mergedInto: null });
   });
 });

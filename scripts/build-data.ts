@@ -3,6 +3,7 @@ import path from "path";
 import {
   fetchAllBills,
   fetchAllLegislators,
+  fetchBillDetail,
   type RawBill,
   type RawLegislator,
 } from "../lib/ly-api";
@@ -82,6 +83,54 @@ export function shouldFetchMergeCheck(
   if (entry.mergedInto !== null) return false;
   const cutoff = isoDateDaysAgo(today, MERGE_CHECK_RECHECK_DAYS);
   return entry.checkedAt < cutoff;
+}
+
+export async function checkMergeStatus(
+  bill: ProcessedBill,
+  billsById: Map<string, ProcessedBill>
+): Promise<MergedInto | null> {
+  const detail = await fetchBillDetail(bill.id).catch(() => null);
+  if (!detail?.關連議案) return null;
+
+  let best: MergedInto | null = null;
+  for (const related of detail.關連議案) {
+    const candidate = billsById.get(related.議案編號);
+    if (!candidate) continue;
+    if (candidate.stageOrder <= bill.stageOrder) continue;
+    if (!best || candidate.stageOrder > best.stageOrder) {
+      best = {
+        id: candidate.id,
+        name: candidate.name,
+        stageLabel: candidate.stageLabel,
+        stageOrder: candidate.stageOrder,
+      };
+    }
+  }
+  return best;
+}
+
+export async function applyMergeChecks(
+  bills: ProcessedBill[],
+  cache: MergeCheckCache,
+  today: Date = new Date()
+): Promise<MergeCheckCache> {
+  const billsById = new Map(bills.map((b) => [b.id, b]));
+  const candidates = selectMergeCandidates(bills, today);
+  const todayStr = today.toISOString().slice(0, 10);
+  const nextCache: MergeCheckCache = { ...cache };
+
+  for (const bill of candidates) {
+    const existing = nextCache[bill.id];
+    if (!shouldFetchMergeCheck(existing, today)) {
+      bill.mergedInto = existing?.mergedInto ?? null;
+      continue;
+    }
+    const mergedInto = await checkMergeStatus(bill, billsById);
+    nextCache[bill.id] = { checkedAt: todayStr, mergedInto };
+    bill.mergedInto = mergedInto;
+  }
+
+  return nextCache;
 }
 
 export function buildMeta(bills: ProcessedBill[]): MetaStats {
