@@ -12,6 +12,13 @@ export interface StageDef {
   rawStatuses: string[];
 }
 
+export interface MergedInto {
+  id: string;
+  name: string;
+  stageLabel: string;
+  stageOrder: number;
+}
+
 export interface ProcessedBill {
   id: string;
   name: string;
@@ -25,9 +32,9 @@ export interface ProcessedBill {
   stageLabel: string;
   stageOrder: number;
   rawStatus: string;
-  proposalDate: string | null;
   lastUpdateDate: string | null;
   daysPending: number | null;
+  mergedInto: MergedInto | null;
   url: string;
 }
 

@@ -8,7 +8,7 @@ import {
 } from "../lib/ly-api";
 import { partyForBill } from "../lib/parties";
 import { categorizeBill } from "../lib/categories";
-import { daysPending, normalizeStage } from "../lib/stage";
+import { daysPending, isFinishedStage, normalizeStage } from "../lib/stage";
 import type { MetaStats, ProcessedBill } from "../lib/types";
 
 const TERM = 11;
@@ -20,7 +20,7 @@ export function processBill(
   const proposers = bill.提案人 ?? [];
   const lawNames = bill["法律編號:str"] ?? [];
   const stage = normalizeStage(bill.議案狀態);
-  const proposalDate = bill.提案日期 ?? null;
+  const lastUpdateDate = bill.最新進度日期 ?? null;
 
   return {
     id: bill.議案編號,
@@ -35,9 +35,9 @@ export function processBill(
     stageLabel: stage.label,
     stageOrder: stage.order,
     rawStatus: bill.議案狀態,
-    proposalDate,
-    lastUpdateDate: bill.最新進度日期 ?? null,
-    daysPending: daysPending(proposalDate),
+    lastUpdateDate,
+    daysPending: isFinishedStage(stage.order) ? null : daysPending(lastUpdateDate),
+    mergedInto: null,
     url: bill.url,
   };
 }

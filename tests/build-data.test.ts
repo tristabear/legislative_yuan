@@ -22,7 +22,6 @@ describe("processBill", () => {
       "提案單位/提案委員": "本院委員王委員等18人",
       提案人: ["王委員"],
       議案狀態: "交付審查",
-      提案日期: "2026-01-01",
       最新進度日期: "2026-01-05",
       "法律編號:str": ["勞動基準法"],
       url: "https://ppg.ly.gov.tw/ppg/bills/202110000000000/details",
@@ -36,8 +35,9 @@ describe("processBill", () => {
     expect(result.stageId).toBe("committee-review");
     expect(result.stageLabel).toBe("委員會審查");
     expect(result.rawStatus).toBe("交付審查");
-    expect(result.proposalDate).toBe("2026-01-01");
+    expect(result.lastUpdateDate).toBe("2026-01-05");
     expect(result.daysPending).not.toBeNull();
+    expect(result.mergedInto).toBeNull();
   });
 
   it("processes a 政府提案 with no proposers", () => {
@@ -59,7 +59,29 @@ describe("processBill", () => {
     expect(result.proposers).toEqual([]);
     expect(result.categories).toEqual(["uncategorized"]);
     expect(result.stageId).toBe("closed");
-    expect(result.proposalDate).toBeNull();
+    expect(result.daysPending).toBeNull();
+    expect(result.mergedInto).toBeNull();
+  });
+
+  it("returns null daysPending for a finished bill even with a recent lastUpdateDate", () => {
+    const raw: RawBill = {
+      屆: 11,
+      議案編號: "202110000000002",
+      議案名稱: "某法部分條文修正草案",
+      議案類別: "法律案",
+      提案來源: "委員提案",
+      "提案單位/提案委員": "本院委員王委員等18人",
+      提案人: ["王委員"],
+      議案狀態: "三讀",
+      最新進度日期: "2026-06-01",
+      "法律編號:str": ["某法"],
+      url: "https://ppg.ly.gov.tw/ppg/bills/202110000000002/details",
+    };
+
+    const result = processBill(raw, legislators);
+
+    expect(result.stageId).toBe("third-reading");
+    expect(result.lastUpdateDate).toBe("2026-06-01");
     expect(result.daysPending).toBeNull();
   });
 });
@@ -77,7 +99,6 @@ describe("buildMeta", () => {
           "提案單位/提案委員": "本院委員王委員等18人",
           提案人: ["王委員"],
           議案狀態: "交付審查",
-          提案日期: "2026-01-01",
           "法律編號:str": ["勞動基準法"],
           url: "u1",
         },
@@ -93,7 +114,6 @@ describe("buildMeta", () => {
           "提案單位/提案委員": "本院委員林委員等18人",
           提案人: ["林委員"],
           議案狀態: "三讀",
-          提案日期: "2025-01-01",
           "法律編號:str": ["道路交通管理處罰條例"],
           url: "u2",
         },

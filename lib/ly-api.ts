@@ -9,7 +9,6 @@ export interface RawBill {
   "提案單位/提案委員": string;
   提案人: string[] | null;
   議案狀態: string;
-  提案日期?: string;
   最新進度日期?: string;
   "法律編號:str"?: string[];
   url: string;
@@ -33,12 +32,19 @@ export interface BillAttachment {
   網址: string;
 }
 
+export interface BillRelatedBill {
+  議案編號: string;
+  議案名稱: string;
+}
+
 export interface BillDetail {
   議案編號: string;
   案由?: string;
+  提案日期?: string;
   說明?: string;
   連署人?: string[];
   議案流程?: BillProcessEntry[];
+  關連議案?: BillRelatedBill[];
   相關附件?: BillAttachment[];
   url: string;
 }
