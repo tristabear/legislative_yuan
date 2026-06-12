@@ -1,0 +1,35 @@
+name: Refresh Bills Data
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run build:data
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/bills.json public/data/meta.json data/unmatched-proposers.json
+          if git diff --cached --quiet; then
+            echo "No data changes"
+          else
+            git commit -m "data: scheduled refresh of bills dataset"
+            git push
+          fi
