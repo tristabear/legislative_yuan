@@ -9,7 +9,7 @@ import {
 import { partyForBill } from "../lib/parties";
 import { categorizeBill } from "../lib/categories";
 import { daysPending, isFinishedStage, normalizeStage } from "../lib/stage";
-import type { MetaStats, ProcessedBill } from "../lib/types";
+import type { MergedInto, MetaStats, ProcessedBill } from "../lib/types";
 
 const TERM = 11;
 
@@ -40,6 +40,48 @@ export function processBill(
     mergedInto: null,
     url: bill.url,
   };
+}
+
+const MERGE_CHECK_BILL_TYPE = "法律案";
+const MERGE_CHECK_STAGE_ORDERS = [1, 2, 3, 4];
+const MERGE_CHECK_MIN_AGE_DAYS = 90;
+const MERGE_CHECK_RECHECK_DAYS = 30;
+
+export interface MergeCheckEntry {
+  checkedAt: string;
+  mergedInto: MergedInto | null;
+}
+
+export type MergeCheckCache = Record<string, MergeCheckEntry>;
+
+function isoDateDaysAgo(today: Date, days: number): string {
+  const d = new Date(today);
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+export function selectMergeCandidates(
+  bills: ProcessedBill[],
+  today: Date = new Date()
+): ProcessedBill[] {
+  const cutoff = isoDateDaysAgo(today, MERGE_CHECK_MIN_AGE_DAYS);
+  return bills.filter(
+    (bill) =>
+      bill.billType === MERGE_CHECK_BILL_TYPE &&
+      MERGE_CHECK_STAGE_ORDERS.includes(bill.stageOrder) &&
+      bill.lastUpdateDate !== null &&
+      bill.lastUpdateDate < cutoff
+  );
+}
+
+export function shouldFetchMergeCheck(
+  entry: MergeCheckEntry | undefined,
+  today: Date = new Date()
+): boolean {
+  if (!entry) return true;
+  if (entry.mergedInto !== null) return false;
+  const cutoff = isoDateDaysAgo(today, MERGE_CHECK_RECHECK_DAYS);
+  return entry.checkedAt < cutoff;
 }
 
 export function buildMeta(bills: ProcessedBill[]): MetaStats {

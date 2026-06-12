@@ -3,13 +3,39 @@ import {
   buildMeta,
   findUnmatchedProposers,
   processBill,
+  selectMergeCandidates,
+  shouldFetchMergeCheck,
 } from "../scripts/build-data";
+import type { MergeCheckEntry, MergeCheckCache } from "../scripts/build-data";
 import type { RawBill, RawLegislator } from "../lib/ly-api";
+import type { ProcessedBill } from "../lib/types";
 
 const legislators: RawLegislator[] = [
   { 屆: 11, 委員姓名: "王委員", 黨籍: "民主進步黨", 黨團: "民主進步黨" },
   { 屆: 11, 委員姓名: "林委員", 黨籍: "中國國民黨", 黨團: "中國國民黨" },
 ];
+
+function makeBill(overrides: Partial<ProcessedBill> = {}): ProcessedBill {
+  return {
+    id: "1",
+    name: "測試案",
+    billType: "法律案",
+    source: "委員提案",
+    proposerUnit: "本院委員",
+    proposers: [],
+    party: "其他",
+    categories: [],
+    stageId: "committee-review",
+    stageLabel: "委員會審查",
+    stageOrder: 2,
+    rawStatus: "交付審查",
+    lastUpdateDate: "2025-01-01",
+    daysPending: 100,
+    mergedInto: null,
+    url: "u",
+    ...overrides,
+  };
+}
 
 describe("processBill", () => {
   it("processes a 委員提案 law-amendment bill", () => {
@@ -162,5 +188,61 @@ describe("findUnmatchedProposers", () => {
     ];
 
     expect(findUnmatchedProposers(bills, legislators)).toEqual(["未知委員"]);
+  });
+});
+
+describe("selectMergeCandidates", () => {
+  const today = new Date("2026-06-12T00:00:00Z");
+
+  it("includes 法律案 in stageOrder 1-4 with lastUpdateDate older than 90 days", () => {
+    const bill = makeBill({ lastUpdateDate: "2026-01-01" });
+    expect(selectMergeCandidates([bill], today)).toEqual([bill]);
+  });
+
+  it("excludes bills updated within the last 90 days", () => {
+    const bill = makeBill({ lastUpdateDate: "2026-06-01" });
+    expect(selectMergeCandidates([bill], today)).toEqual([]);
+  });
+
+  it("excludes non-法律案 bill types", () => {
+    const bill = makeBill({ billType: "預算案", lastUpdateDate: "2026-01-01" });
+    expect(selectMergeCandidates([bill], today)).toEqual([]);
+  });
+
+  it("excludes finished stages (0 and 5)", () => {
+    const closed = makeBill({ stageOrder: 0, lastUpdateDate: "2026-01-01" });
+    const passed = makeBill({ stageOrder: 5, lastUpdateDate: "2026-01-01" });
+    expect(selectMergeCandidates([closed, passed], today)).toEqual([]);
+  });
+
+  it("excludes bills with no lastUpdateDate", () => {
+    const bill = makeBill({ lastUpdateDate: null });
+    expect(selectMergeCandidates([bill], today)).toEqual([]);
+  });
+});
+
+describe("shouldFetchMergeCheck", () => {
+  const today = new Date("2026-06-12T00:00:00Z");
+
+  it("returns true when there is no cache entry", () => {
+    expect(shouldFetchMergeCheck(undefined, today)).toBe(true);
+  });
+
+  it("returns false when a merge was already found", () => {
+    const entry: MergeCheckEntry = {
+      checkedAt: "2020-01-01",
+      mergedInto: { id: "2", name: "報告", stageLabel: "三讀通過", stageOrder: 5 },
+    };
+    expect(shouldFetchMergeCheck(entry, today)).toBe(false);
+  });
+
+  it("returns false when checked recently with no merge found", () => {
+    const entry: MergeCheckEntry = { checkedAt: "2026-06-01", mergedInto: null };
+    expect(shouldFetchMergeCheck(entry, today)).toBe(false);
+  });
+
+  it("returns true when last checked more than 30 days ago with no merge found", () => {
+    const entry: MergeCheckEntry = { checkedAt: "2026-04-01", mergedInto: null };
+    expect(shouldFetchMergeCheck(entry, today)).toBe(true);
   });
 });
