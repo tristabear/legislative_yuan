@@ -65,3 +65,7 @@ export function daysPending(
   const diffMs = now.getTime() - proposed.getTime();
   return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 }
+
+export function isFinishedStage(stageOrder: number): boolean {
+  return stageOrder === 0 || stageOrder === 5;
+}

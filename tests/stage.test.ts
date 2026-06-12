@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STAGES, daysPending, normalizeStage } from "../lib/stage";
+import { STAGES, daysPending, normalizeStage, isFinishedStage } from "../lib/stage";
 
 describe("normalizeStage", () => {
   it("maps 排入院會 to first-reading", () => {
@@ -64,5 +64,19 @@ describe("daysPending", () => {
   it("never returns a negative number", () => {
     const now = new Date("2026-06-12T00:00:00Z");
     expect(daysPending("2026-06-20", now)).toBe(0);
+  });
+});
+
+describe("isFinishedStage", () => {
+  it("returns true for closed (0) and third-reading (5)", () => {
+    expect(isFinishedStage(0)).toBe(true);
+    expect(isFinishedStage(5)).toBe(true);
+  });
+
+  it("returns false for in-progress stages (1-4)", () => {
+    expect(isFinishedStage(1)).toBe(false);
+    expect(isFinishedStage(2)).toBe(false);
+    expect(isFinishedStage(3)).toBe(false);
+    expect(isFinishedStage(4)).toBe(false);
   });
 });
