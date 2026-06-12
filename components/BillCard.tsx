@@ -20,6 +20,11 @@ export function BillCard({ bill }: { bill: ProcessedBill }) {
         目前階段：{bill.stageLabel}
         {bill.daysPending !== null && <> · 已等待 {bill.daysPending} 天</>}
       </div>
+      {bill.mergedInto && (
+        <div className="mt-1 text-xs text-gray-500">
+          已併案處理 · 相關報告：{bill.mergedInto.stageLabel}
+        </div>
+      )}
     </Link>
   );
 }
