@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T23:10:20.918Z",
+  "generatedAt": "2026-06-19T00:14:49.200Z",
   "totalBills": 21555,
   "byParty": {
     "中國國民黨": 3452,
@@ -8,12 +8,12 @@
     "台灣民眾黨": 12
   },
   "byCategory": {
+    "judicial-rights": 515,
     "environment": 742,
     "uncategorized": 15383,
     "governance-electoral": 212,
     "fiscal-tax": 478,
     "agriculture": 526,
-    "judicial-rights": 515,
     "child-welfare": 383,
     "housing": 83,
     "labor": 631,
@@ -26,8 +26,8 @@
     "elder-care": 155
   },
   "byStage": {
-    "二讀/院會討論": 4203,
-    "委員會審查": 5416,
+    "二讀/院會討論": 4258,
+    "委員會審查": 5361,
     "三讀通過": 795,
     "其他程序（改交其他委員會審查）": 4,
     "其他程序（重付審查）": 3,
