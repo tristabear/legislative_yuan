@@ -26383,5 +26383,25 @@
       "stageLabel": "三讀通過",
       "stageOrder": 5
     }
+  },
+  "202110199740000": {
+    "checkedAt": "2026-06-30",
+    "mergedInto": null
+  },
+  "202110201590000": {
+    "checkedAt": "2026-06-30",
+    "mergedInto": null
+  },
+  "202110201580000": {
+    "checkedAt": "2026-06-30",
+    "mergedInto": null
+  },
+  "202110201570000": {
+    "checkedAt": "2026-06-30",
+    "mergedInto": null
+  },
+  "202110201620000": {
+    "checkedAt": "2026-06-30",
+    "mergedInto": null
   }
 }
